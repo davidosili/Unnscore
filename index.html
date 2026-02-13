@@ -196,7 +196,9 @@
         <div class="pill active" onclick="filterSport(this, 'football')">Football</div>
         <div class="pill" onclick="filterSport(this, 'basketball')">Basketball</div>
         <div class="pill" onclick="filterFavorite(this)">Favorites</div>
+         <div class="m-tab" onclick="tab('table', this)">Table</div>
     </div>
+
 <div class="banner">
         <div><i class="fa-solid fa-graduation-cap"></i> SUG WEEK STARTS MONDAY</div>
 </div>
@@ -264,291 +266,203 @@
     </div>
 
     <script>
-        // --- 1. STATE & DATA ---
-        let state = {
-            sport: 'football',
-            liveOnly: false,
-            favOnly: false,
-            search: '',
-            favorites: JSON.parse(localStorage.getItem('unn_favs')) || []
-        };
+    // --- 1. STATE & DATA ---
+    let state = {
+        sport: 'football',
+        liveOnly: false,
+        favOnly: false,
+        search: '',
+        favorites: JSON.parse(localStorage.getItem('unn_favs')) || []
+    };
 
-        // The "Database"
-        const matches = [
-            { id: 1, sport: 'football', league: 'Inter-Faculty Games', sub:'Main Campus', home: 'Engineering', away: 'Bio Sciences', hScore: 2, aScore: 1, time: 88, status: 'LIVE', c1:'#FFD700', c2:'#008000' },
-            { id: 2, sport: 'football', league: 'Inter-Faculty Games', sub:'Main Campus', home: 'Law', away: 'Medicine', hScore: 0, aScore: 0, time: 14, status: 'LIVE', c1:'#FFF', c2:'#F00' },
-            { id: 3, sport: 'football', league: 'VC Hostel League', sub:'Boys', home: 'Alvan Ikoku', away: 'Eni Njoku', hScore: 1, aScore: 1, time: 45, status: 'HT', c1:'#A52A2A', c2:'#4682B4' },
-            { id: 4, sport: 'football', league: 'VC Hostel League', sub:'Boys', home: 'Zik Flats', away: 'Mbanefo', hScore: 0, aScore: 0, time: 0, status: 'UPCOMING', c1:'#4B0082', c2:'#333' },
-            { id: 5, sport: 'football', league: 'Departmental Cup', sub:'Group A', home: 'Comp. Sci', away: 'Physics', hScore: 3, aScore: 2, time: 90, status: 'FT', c1:'#000', c2:'#FFF' },
-            { id: 6, sport: 'basketball', league: 'Indoor Games', sub:'Finals', home: 'Pharmacy', away: 'Dentistry', hScore: 45, aScore: 40, time: 3, status: 'LIVE', c1:'#FFF', c2:'#888' }
-        ];
+    // The "Database"
+    const matches = [
+        { id: 1, sport: 'football', league: 'Inter-Faculty Games', sub:'Main Campus', home: 'Engineering', away: 'Bio Sciences', hScore: 2, aScore: 1, time: 88, status: 'LIVE', c1:'#FFD700', c2:'#008000' },
+        { id: 2, sport: 'football', league: 'Inter-Faculty Games', sub:'Main Campus', home: 'Law', away: 'Medicine', hScore: 0, aScore: 0, time: 14, status: 'LIVE', c1:'#FFF', c2:'#F00' },
+        { id: 3, sport: 'football', league: 'VC Hostel League', sub:'Boys', home: 'Alvan Ikoku', away: 'Eni Njoku', hScore: 1, aScore: 1, time: 45, status: 'HT', c1:'#A52A2A', c2:'#4682B4' },
+        { id: 4, sport: 'football', league: 'VC Hostel League', sub:'Boys', home: 'Zik Flats', away: 'Mbanefo', hScore: 0, aScore: 0, time: 0, status: 'UPCOMING', c1:'#4B0082', c2:'#333' },
+        { id: 5, sport: 'football', league: 'Departmental Cup', sub:'Group A', home: 'Comp. Sci', away: 'Physics', hScore: 3, aScore: 2, time: 90, status: 'FT', c1:'#000', c2:'#FFF' },
+        { id: 6, sport: 'basketball', league: 'Indoor Games', sub:'Finals', home: 'Pharmacy', away: 'Dentistry', hScore: 45, aScore: 40, time: 3, status: 'LIVE', c1:'#FFF', c2:'#888' }
+    ];
 
-        // --- 2. RENDER ENGINE ---
-        function render() {
-            const container = document.getElementById('app-container');
-            
-            // 1. Filter
-            let filtered = matches.filter(m => {
-                const sMatch = m.sport === state.sport;
-                const lMatch = state.liveOnly ? (m.status === 'LIVE' || m.status === 'HT') : true;
-                const fMatch = state.favOnly ? state.favorites.includes(m.id) : true;
-                const qMatch = m.home.toLowerCase().includes(state.search) || m.away.toLowerCase().includes(state.search);
-                return sMatch && lMatch && fMatch && qMatch;
-            });
+    // --- 2. RENDER ENGINE ---
+    function render() {
+        const container = document.getElementById('app-container');
+        let filtered = matches.filter(m => {
+            const sMatch = m.sport === state.sport;
+            const lMatch = state.liveOnly ? (m.status === 'LIVE' || m.status === 'HT') : true;
+            const fMatch = state.favOnly ? state.favorites.includes(m.id) : true;
+            const qMatch = m.home.toLowerCase().includes(state.search) || m.away.toLowerCase().includes(state.search);
+            return sMatch && lMatch && fMatch && qMatch;
+        });
 
-            // 2. Loading Skeleton (Simulated)
-            if(!container.hasChildNodes() && filtered.length > 0) {
-                container.innerHTML = `<div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>`;
-            }
-
-            // 3. Build HTML
-            const frag = document.createDocumentFragment();
-            const leagues = [...new Set(filtered.map(m => m.league))];
-
-            if(filtered.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:50px; color:#444;">No matches found</div>`;
-                return;
-            }
-
-            leagues.forEach(lg => {
-                const sub = filtered.find(m => m.league === lg).sub;
-                const group = document.createElement('div');
-                group.className = 'league-group';
-                
-                // League Header with collapse logic
-                group.innerHTML = `
-                    <div class="league-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                        <div class="lh-left"><i class="fa-solid fa-trophy lh-icon"></i> ${lg} <span style="font-weight:400; color:#666; margin-left:5px;">${sub}</span></div>
-                        <i class="fa-solid fa-chevron-down" style="font-size:10px; color:#666;"></i>
-                    </div>
-                    <div class="match-list"></div>
-                `;
-
-                const list = group.querySelector('.match-list');
-
-                filtered.filter(m => m.league === lg).forEach(m => {
-                    const isLive = m.status === 'LIVE';
-                    const isFav = state.favorites.includes(m.id);
-                    const timeDisplay = isLive ? `<span class="st-live">${m.time}'</span>` : `<span class="st-ft">${m.status === 'UPCOMING' ? formatTime(m) : m.status}</span>`;
-                    const c1Text = isLight(m.c1) ? 'black' : 'white';
-                    const c2Text = isLight(m.c2) ? 'black' : 'white';
-                    const scoreDisplay = m.status === 'UPCOMING' ? '?' : m.hScore;
-                    const scoreDisplayA = m.status === 'UPCOMING' ? '?' : m.aScore;
-
-                    const row = document.createElement('div');
-                    row.className = 'match-row';
-                    row.onclick = () => openModal(m.id);
-                    row.innerHTML = `
-                        <div class="time-col">
-                            ${timeDisplay}
-                            ${isLive ? '<div style="width:4px; height:4px; background:var(--accent-orange); border-radius:50%;"></div>' : ''}
-                        </div>
-                        <div class="teams-col">
-                            <div class="team-row">
-                                <div class="t-info"><div class="t-logo" style="background:${m.c1}; color:${c1Text}">${m.home[0]}</div> <div class="t-name">${m.home}</div></div>
-                                <div class="t-score ${m.status === 'UPCOMING' ? 'dim' : ''}">${scoreDisplay}</div>
-                            </div>
-                            <div class="team-row">
-                                <div class="t-info"><div class="t-logo" style="background:${m.c2}; color:${c2Text}">${m.away[0]}</div> <div class="t-name">${m.away}</div></div>
-                                <div class="t-score ${m.status === 'UPCOMING' ? 'dim' : ''}">${scoreDisplayA}</div>
-                            </div>
-                        </div>
-                        <div style="text-align:right;">
-                            <i class="fa-${isFav ? 'solid' : 'regular'} fa-star star-btn ${isFav ? 'active' : ''}" onclick="toggleFav(event, ${m.id})"></i>
-                        </div>
-                    `;
-                    list.appendChild(row);
-                });
-                frag.appendChild(group);
-            });
-
-            container.innerHTML = '';
-            container.appendChild(frag);
+        if(!container.hasChildNodes() && filtered.length > 0) {
+            container.innerHTML = `<div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>`;
         }
 
-        // --- 3. SIMULATION ENGINE (The "Live" Part) ---
-        setInterval(() => {
-            const liveMatches = matches.filter(m => m.status === 'LIVE');
-            if(liveMatches.length > 0) {
-                // 1. Tick Time
-                liveMatches.forEach(m => {
-                    if(m.time < 90) m.time++;
-                });
-
-                // 2. Random Goal (10% chance)
-                if(Math.random() > 0.9) {
-                    const m = liveMatches[Math.floor(Math.random() * liveMatches.length)];
-                    const scorer = Math.random() > 0.5 ? 'home' : 'away';
-                    if(scorer === 'home') m.hScore++; else m.aScore++;
-                    
-                    showToast(`GOAL! ${scorer === 'home' ? m.home : m.away} scores!`);
-                }
-                
-                render(); // Re-render to show new times/scores
-                if(document.getElementById('sheet').style.bottom === '0px') updateModal(); // Update modal if open
-            }
-        }, 5000); // Runs every 5 seconds
-
-        // --- 4. MODAL LOGIC (Stats & Tables) ---
-        let currentMatchId = null;
-
-        function openModal(id) {
-            currentMatchId = id;
-            updateModal();
-            document.getElementById('overlay').style.display = 'block';
-            setTimeout(() => {
-                document.getElementById('overlay').style.opacity = '1';
-                document.getElementById('sheet').style.bottom = '0';
-            }, 10);
+        if(filtered.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:50px; color:#444;">No matches found</div>`;
+            return;
         }
 
-        function updateModal() {
-            if(!currentMatchId) return;
-            const m = matches.find(x => x.id === currentMatchId);
-            
-            // Header
-            document.getElementById('md-league').innerText = m.league;
-            document.getElementById('md-h').innerText = m.home;
-            document.getElementById('md-a').innerText = m.away;
-            document.getElementById('md-score').innerText = m.status === 'UPCOMING' ? 'VS' : `${m.hScore} - ${m.aScore}`;
-            document.getElementById('md-time').innerText = m.status === 'LIVE' ? m.time + "'" : m.status;
-            
-            document.getElementById('md-l1').innerText = m.home[0]; document.getElementById('md-l1').style.background = m.c1;
-            document.getElementById('md-l2').innerText = m.away[0]; document.getElementById('md-l2').style.background = m.c2;
+        const frag = document.createDocumentFragment();
+        const leagues = [...new Set(filtered.map(m => m.league))];
 
-            // Generate Stats (Random for demo)
-            const hPoss = m.status === 'UPCOMING' ? 50 : Math.floor(Math.random() * 30) + 35;
-            document.getElementById('stats-box').innerHTML = `
-                ${createStatBar('Possession', hPoss, 100-hPoss)}
-                ${createStatBar('Shots', Math.floor(hPoss/5), Math.floor((100-hPoss)/5))}
-                ${createStatBar('Yellow Cards', 1, 2)}
+        leagues.forEach(lg => {
+            const sub = filtered.find(m => m.league === lg).sub;
+            const group = document.createElement('div');
+            group.className = 'league-group';
+            group.innerHTML = `
+                <div class="league-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                    <div class="lh-left"><i class="fa-solid fa-trophy lh-icon"></i> ${lg} <span style="font-weight:400; color:#666; margin-left:5px;">${sub}</span></div>
+                    <i class="fa-solid fa-chevron-down" style="font-size:10px; color:#666;"></i>
+                </div>
+                <div class="match-list"></div>
             `;
 
-            // Generate Timeline
-            document.getElementById('timeline-box').innerHTML = m.hScore > 0 ? 
-                `<div class="timeline-item"><div class="tl-time">12'</div><div class="tl-icon">⚽</div><div>Goal for ${m.home}</div></div>` : '<div style="text-align:center; padding:20px; color:#444;">No events yet</div>';
+            const list = group.querySelector('.match-list');
+            filtered.filter(m => m.league === lg).forEach(m => {
+                const isLive = m.status === 'LIVE';
+                const isFav = state.favorites.includes(m.id);
+                const timeDisplay = isLive ? `<span class="st-live">${m.time}'</span>` : `<span class="st-ft">${m.status === 'UPCOMING' ? formatTime(m) : m.status}</span>`;
+                const c1Text = isLight(m.c1) ? 'black' : 'white';
+                const c2Text = isLight(m.c2) ? 'black' : 'white';
+                const scoreDisplay = m.status === 'UPCOMING' ? '?' : m.hScore;
+                const scoreDisplayA = m.status === 'UPCOMING' ? '?' : m.aScore;
 
-            // Generate Table (Logic)
-            generateTable(m.league);
-        }
-
-        function generateTable(leagueName) {
-            // Filter matches from this league
-            const leagueMatches = matches.filter(m => m.league === leagueName);
-            // Get unique teams
-            const teams = [...new Set([...leagueMatches.map(m=>m.home), ...leagueMatches.map(m=>m.away)])];
-            
-            // Calculate Points (Simplified)
-            let standings = teams.map(t => {
-                let pts = 0;
-                // Add fake points for realism if no data
-                pts += Math.floor(Math.random() * 10); 
-                return { name: t, pts: pts, p: 5, gd: Math.floor(Math.random()*5) };
-            }).sort((a,b) => b.pts - a.pts);
-
-            let html = '';
-            standings.forEach((t, i) => {
-                html += `<div class="tbl-row"><div>${i+1}</div> <div>${t.name}</div> <div>${t.p}</div> <div>${t.gd}</div> <div style="font-weight:bold; color:white;">${t.pts}</div></div>`;
+                const row = document.createElement('div');
+                row.className = 'match-row';
+                row.onclick = () => openModal(m.id);
+                row.innerHTML = `
+                    <div class="time-col">
+                        ${timeDisplay}
+                        ${isLive ? '<div style="width:4px; height:4px; background:var(--accent-orange); border-radius:50%;"></div>' : ''}
+                    </div>
+                    <div class="teams-col">
+                        <div class="team-row">
+                            <div class="t-info"><div class="t-logo" style="background:${m.c1}; color:${c1Text}">${m.home[0]}</div> <div class="t-name">${m.home}</div></div>
+                            <div class="t-score ${m.status === 'UPCOMING' ? 'dim' : ''}">${scoreDisplay}</div>
+                        </div>
+                        <div class="team-row">
+                            <div class="t-info"><div class="t-logo" style="background:${m.c2}; color:${c2Text}">${m.away[0]}</div> <div class="t-name">${m.away}</div></div>
+                            <div class="t-score ${m.status === 'UPCOMING' ? 'dim' : ''}">${scoreDisplayA}</div>
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <i class="fa-${isFav ? 'solid' : 'regular'} fa-star star-btn ${isFav ? 'active' : ''}" onclick="toggleFav(event, ${m.id})"></i>
+                    </div>
+                `;
+                list.appendChild(row);
             });
-            document.getElementById('table-box').innerHTML = html;
-        }
+            frag.appendChild(group);
+        });
 
-        // --- 5. INTERACTION HANDLERS ---
-        function filterSport(el, s) {
-            document.querySelectorAll('.nav-scroller .pill').forEach(p => p.classList.remove('active'));
-            el.classList.add('active');
-            state.sport = s;
-            state.favOnly = false;
-            render();
-        }
+        container.innerHTML = '';
+        container.appendChild(frag);
+    }
 
-        function filterFavorite(el) {
-            document.querySelectorAll('.nav-scroller .pill').forEach(p => p.classList.remove('active'));
-            el.classList.add('active');
-            state.favOnly = true;
-            render();
-        }
+    // --- 3. SIMULATION ENGINE ---
+    setInterval(() => {
+        const liveMatches = matches.filter(m => m.status === 'LIVE');
+        if(liveMatches.length > 0) {
+            liveMatches.forEach(m => { if(m.time < 90) m.time++; });
+            
+            if(Math.random() > 0.9) {
+                const m = liveMatches[Math.floor(Math.random() * liveMatches.length)];
+                const scorer = Math.random() > 0.5 ? 'home' : 'away';
+                if(scorer === 'home') m.hScore++; else m.aScore++;
 
-        function toggleLive(el) {
-            state.liveOnly = !state.liveOnly;
-            el.classList.toggle('active');
-            render();
-        }
-
-        function toggleFav(e, id) {
-            e.stopPropagation();
-            if(state.favorites.includes(id)) {
-                state.favorites = state.favorites.filter(x => x !== id);
-            } else {
-                state.favorites.push(id);
+                const msg = `GOAL! ${scorer === 'home' ? m.home : m.away} scores!`;
+                showToast(msg);
+                sendWebNotification("UNN LiveScore", msg);
             }
-            localStorage.setItem('unn_favs', JSON.stringify(state.favorites));
+
             render();
+            if(document.getElementById('sheet').style.bottom === '0px') updateModal();
         }
+    }, 5000);
 
-        function tab(name, el) {
-            document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
-            document.getElementById('t-'+name).classList.add('active');
-            document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-        }
+    // --- 4. MODAL LOGIC ---
+    let currentMatchId = null;
 
-        function closeModal() {
-            document.getElementById('sheet').style.bottom = '-100%';
-            document.getElementById('overlay').style.opacity = '0';
-            setTimeout(() => document.getElementById('overlay').style.display = 'none', 300);
-            currentMatchId = null;
-        }
+    function openModal(id) {
+        currentMatchId = id;
+        updateModal();
+        document.getElementById('overlay').style.display = 'block';
+        setTimeout(() => {
+            document.getElementById('overlay').style.opacity = '1';
+            document.getElementById('sheet').style.bottom = '0';
+        }, 10);
+    }
 
-        function toggleSearch() {
-            document.getElementById('searchWrap').classList.toggle('open');
-            if(document.getElementById('searchWrap').classList.contains('open')) document.querySelector('.search-input').focus();
-        }
+    function updateModal() {
+        if(!currentMatchId) return;
+        const m = matches.find(x => x.id === currentMatchId);
 
-        let debounceTimer;
-        function debounceSearch(val) {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                state.search = val.toLowerCase();
-                render();
-            }, 300);
-        }
+        document.getElementById('md-league').innerText = m.league;
+        document.getElementById('md-h').innerText = m.home;
+        document.getElementById('md-a').innerText = m.away;
+        document.getElementById('md-score').innerText = m.status === 'UPCOMING' ? 'VS' : `${m.hScore} - ${m.aScore}`;
+        document.getElementById('md-time').innerText = m.status === 'LIVE' ? m.time + "'" : m.status;
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
-        }
+        document.getElementById('md-l1').innerText = m.home[0]; document.getElementById('md-l1').style.background = m.c1;
+        document.getElementById('md-l2').innerText = m.away[0]; document.getElementById('md-l2').style.background = m.c2;
 
-        // --- HELPERS ---
-        function createStatBar(label, hVal, aVal) {
-            const total = hVal + aVal;
-            const hPct = (hVal/total)*100;
-            return `
-            <div class="stat-row">
-                <div class="stat-label"><span>${hVal}</span> <span>${label}</span> <span>${aVal}</span></div>
-                <div class="stat-bar-bg">
-                    <div style="width:${hPct}%; background:var(--gold);"></div>
-                    <div style="width:${100-hPct}%; background:var(--primary);"></div>
-                </div>
-            </div>`;
-        }
+        const hPoss = m.status === 'UPCOMING' ? 50 : Math.floor(Math.random() * 30) + 35;
+        document.getElementById('stats-box').innerHTML = `
+            ${createStatBar('Possession', hPoss, 100-hPoss)}
+            ${createStatBar('Shots', Math.floor(hPoss/5), Math.floor((100-hPoss)/5))}
+            ${createStatBar('Yellow Cards', 1, 2)}
+        `;
 
-        function isLight(color) {
-            const hex = color.replace('#', '');
-            const r = parseInt(hex.substr(0, 2), 16);
-            const g = parseInt(hex.substr(2, 2), 16);
-            const b = parseInt(hex.substr(4, 2), 16);
-            return ((r * 299) + (g * 587) + (b * 114)) / 1000 > 155;
-        }
+        document.getElementById('timeline-box').innerHTML = m.hScore > 0 ? 
+            `<div class="timeline-item"><div class="tl-time">12'</div><div class="tl-icon">⚽</div><div>Goal for ${m.home}</div></div>` : 
+            '<div style="text-align:center; padding:20px; color:#444;">No events yet</div>';
 
-        function formatTime(m) { return '20:00'; } // Simplified for demo
+        generateTable(m.league);
+    }
 
-        // Init
-        render();
+    function generateTable(leagueName) {
+        const leagueMatches = matches.filter(m => m.league === leagueName);
+        const teams = [...new Set([...leagueMatches.map(m=>m.home), ...leagueMatches.map(m=>m.away)])];
 
-    </script>
+        let standings = teams.map(t => {
+            return { name: t, pts: Math.floor(Math.random()*10), p: 5, gd: Math.floor(Math.random()*5) };
+        }).sort((a,b) => b.pts - a.pts);
+
+        let html = '';
+        standings.forEach((t, i) => {
+            html += `<div class="tbl-row"><div>${i+1}</div> <div>${t.name}</div> <div>${t.p}</div> <div>${t.gd}</div> <div style="font-weight:bold; color:white;">${t.pts}</div></div>`;
+        });
+        document.getElementById('table-box').innerHTML = html;
+    }
+
+    // --- 5. INTERACTIONS ---
+    function filterSport(el, s) { document.querySelectorAll('.nav-scroller .pill').forEach(p => p.classList.remove('active')); el.classList.add('active'); state.sport = s; state.favOnly = false; render(); }
+    function filterFavorite(el) { document.querySelectorAll('.nav-scroller .pill').forEach(p => p.classList.remove('active')); el.classList.add('active'); state.favOnly = true; render(); }
+    function toggleLive(el) { state.liveOnly = !state.liveOnly; el.classList.toggle('active'); render(); }
+    function toggleFav(e, id) { e.stopPropagation(); state.favorites.includes(id) ? state.favorites = state.favorites.filter(x=>x!==id) : state.favorites.push(id); localStorage.setItem('unn_favs', JSON.stringify(state.favorites)); render(); }
+    function tab(name, el) { document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active')); document.getElementById('t-'+name).classList.add('active'); document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
+    function closeModal() { document.getElementById('sheet').style.bottom = '-100%'; document.getElementById('overlay').style.opacity = '0'; setTimeout(() => document.getElementById('overlay').style.display = 'none', 300); currentMatchId = null; }
+    function toggleSearch() { document.getElementById('searchWrap').classList.toggle('open'); if(document.getElementById('searchWrap').classList.contains('open')) document.querySelector('.search-input').focus(); }
+
+    let debounceTimer;
+    function debounceSearch(val) { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { state.search = val.toLowerCase(); render(); }, 300); }
+
+    function showToast(msg) { const t = document.getElementById('toast'); document.getElementById('toast-msg').innerText = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
+
+    function createStatBar(label, hVal, aVal) { const total = hVal + aVal; const hPct = (hVal/total)*100; return `<div class="stat-row"><div class="stat-label"><span>${hVal}</span> <span>${label}</span> <span>${aVal}</span></div><div class="stat-bar-bg"><div style="width:${hPct}%; background:var(--gold);"></div><div style="width:${100-hPct}%; background:var(--primary);"></div></div></div>`; }
+    function isLight(color) { const hex = color.replace('#',''); const r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16); return ((r*299)+(g*587)+(b*114))/1000 > 155; }
+    function formatTime(m) { return '20:00'; }
+
+    // --- 6. NOTIFICATIONS ---
+    if ("Notification" in window) Notification.requestPermission().then(p => console.log("Notification permission:", p));
+    function sendWebNotification(title, body) { if(Notification.permission==="granted") new Notification(title,{body}); }
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').then(reg => console.log("Service Worker Registered", reg));
+
+    render();
+                                                       </script>
 </body>
 </html>
 
