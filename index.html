@@ -196,8 +196,8 @@
         <div class="pill active" onclick="filterSport(this, 'football')">Football</div>
         <div class="pill" onclick="filterSport(this, 'basketball')">Basketball</div>
         <div class="pill" onclick="filterFavorite(this)">Favorites</div>
-         <div class="m-tab" onclick="tab('table', this)">Table</div>
-    </div>
+         <div class="pill" onclick="showMainTable(this)">Table</div>
+</div>
 
 <div class="banner">
         <div><i class="fa-solid fa-graduation-cap"></i> SUG WEEK STARTS MONDAY</div>
@@ -210,6 +210,13 @@
 
     <div id="app-container">
         </div>
+
+<div id="main-table-section" style="display:none; padding: 0 16px 20px;">
+    <div class="tbl-row tbl-head">
+        <div>#</div> <div>Team</div> <div>P</div> <div>GD</div> <div>Pts</div>
+    </div>
+    <div id="main-table-box"></div>
+</div>
 
     <div class="modal-overlay" id="overlay" onclick="closeModal()"></div>
     <div class="modal-sheet" id="sheet">
@@ -237,8 +244,10 @@
             <div class="m-tab active" onclick="tab('info', this)">Info</div>
             <div class="m-tab" onclick="tab('timeline', this)">Timeline</div>
             <div class="m-tab" onclick="tab('stats', this)">Stats</div>
-            <div class="m-tab" onclick="tab('table', this)">Table</div>
-        </div>
+    <div class="m-tab" onclick="tab('table', this)">Table</div>
+</div>
+
+<div id="main-table-box"></div>
 
         <div class="m-content">
             <div id="t-info" class="tab-view active">
@@ -265,7 +274,7 @@
         </div>
     </div>
 
-    <script>
+                          <script>
     // --- 1. STATE & DATA ---
     let state = {
         sport: 'football',
@@ -275,32 +284,29 @@
         favorites: JSON.parse(localStorage.getItem('unn_favs')) || []
     };
 
-    // The "Database"
     const matches = [
-        { id: 1, sport: 'football', league: 'Inter-Faculty Games', sub:'Main Campus', home: 'Engineering', away: 'Bio Sciences', hScore: 2, aScore: 1, time: 88, status: 'LIVE', c1:'#FFD700', c2:'#008000' },
-        { id: 2, sport: 'football', league: 'Inter-Faculty Games', sub:'Main Campus', home: 'Law', away: 'Medicine', hScore: 0, aScore: 0, time: 14, status: 'LIVE', c1:'#FFF', c2:'#F00' },
-        { id: 3, sport: 'football', league: 'VC Hostel League', sub:'Boys', home: 'Alvan Ikoku', away: 'Eni Njoku', hScore: 1, aScore: 1, time: 45, status: 'HT', c1:'#A52A2A', c2:'#4682B4' },
-        { id: 4, sport: 'football', league: 'VC Hostel League', sub:'Boys', home: 'Zik Flats', away: 'Mbanefo', hScore: 0, aScore: 0, time: 0, status: 'UPCOMING', c1:'#4B0082', c2:'#333' },
-        { id: 5, sport: 'football', league: 'Departmental Cup', sub:'Group A', home: 'Comp. Sci', away: 'Physics', hScore: 3, aScore: 2, time: 90, status: 'FT', c1:'#000', c2:'#FFF' },
-        { id: 6, sport: 'basketball', league: 'Indoor Games', sub:'Finals', home: 'Pharmacy', away: 'Dentistry', hScore: 45, aScore: 40, time: 3, status: 'LIVE', c1:'#FFF', c2:'#888' }
+        { id: 1, sport: 'football', league: 'Inter-Faculty Games', sub: 'Main Campus', home: 'Engineering', away: 'Bio Sciences', hScore: 2, aScore: 1, time: 88, status: 'LIVE', c1: '#FFD700', c2: '#008000' },
+        { id: 2, sport: 'football', league: 'Inter-Faculty Games', sub: 'Main Campus', home: 'Law', away: 'Medicine', hScore: 0, aScore: 0, time: 14, status: 'LIVE', c1: '#FFF', c2: '#F00' },
+        { id: 3, sport: 'football', league: 'VC Hostel League', sub: 'Boys', home: 'Alvan Ikoku', away: 'Eni Njoku', hScore: 1, aScore: 1, time: 45, status: 'HT', c1: '#A52A2A', c2: '#4682B4' },
+        { id: 4, sport: 'football', league: 'VC Hostel League', sub: 'Boys', home: 'Zik Flats', away: 'Mbanefo', hScore: 0, aScore: 0, time: 0, status: 'UPCOMING', c1: '#4B0082', c2: '#333' },
+        { id: 5, sport: 'football', league: 'Departmental Cup', sub: 'Group A', home: 'Comp. Sci', away: 'Physics', hScore: 3, aScore: 2, time: 90, status: 'FT', c1: '#000', c2: '#FFF' },
+        { id: 6, sport: 'basketball', league: 'Indoor Games', sub: 'Finals', home: 'Pharmacy', away: 'Dentistry', hScore: 45, aScore: 40, time: 3, status: 'LIVE', c1: '#FFF', c2: '#888' }
     ];
 
     // --- 2. RENDER ENGINE ---
     function render() {
         const container = document.getElementById('app-container');
-        let filtered = matches.filter(m => {
-            const sMatch = m.sport === state.sport;
-            const lMatch = state.liveOnly ? (m.status === 'LIVE' || m.status === 'HT') : true;
+        if (!container) return;
+
+        const filtered = matches.filter(m => {
+            const sMatch = state.sport === m.sport;
+            const lMatch = state.liveOnly ? ['LIVE', 'HT'].includes(m.status) : true;
             const fMatch = state.favOnly ? state.favorites.includes(m.id) : true;
             const qMatch = m.home.toLowerCase().includes(state.search) || m.away.toLowerCase().includes(state.search);
             return sMatch && lMatch && fMatch && qMatch;
         });
 
-        if(!container.hasChildNodes() && filtered.length > 0) {
-            container.innerHTML = `<div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>`;
-        }
-
-        if(filtered.length === 0) {
+        if (filtered.length === 0) {
             container.innerHTML = `<div style="text-align:center; padding:50px; color:#444;">No matches found</div>`;
             return;
         }
@@ -354,6 +360,7 @@
                 `;
                 list.appendChild(row);
             });
+
             frag.appendChild(group);
         });
 
@@ -361,52 +368,55 @@
         container.appendChild(frag);
     }
 
-    // --- 3. SIMULATION ENGINE ---
+    // --- 3. SIMULATION ENGINE (LIVE UPDATE) ---
     setInterval(() => {
         const liveMatches = matches.filter(m => m.status === 'LIVE');
-        if(liveMatches.length > 0) {
-            liveMatches.forEach(m => { if(m.time < 90) m.time++; });
-            
-            if(Math.random() > 0.9) {
-                const m = liveMatches[Math.floor(Math.random() * liveMatches.length)];
-                const scorer = Math.random() > 0.5 ? 'home' : 'away';
-                if(scorer === 'home') m.hScore++; else m.aScore++;
+        liveMatches.forEach(m => { if(m.time < 90) m.time++; });
 
-                const msg = `GOAL! ${scorer === 'home' ? m.home : m.away} scores!`;
-                showToast(msg);
-                sendWebNotification("UNN LiveScore", msg);
-            }
-
-            render();
-            if(document.getElementById('sheet').style.bottom === '0px') updateModal();
+        if (liveMatches.length > 0 && Math.random() > 0.9) {
+            const m = liveMatches[Math.floor(Math.random() * liveMatches.length)];
+            const scorer = Math.random() > 0.5 ? 'home' : 'away';
+            if (scorer === 'home') m.hScore++; else m.aScore++;
+            const msg = `GOAL! ${scorer === 'home' ? m.home : m.away} scores!`;
+            showToast(msg);
+            sendWebNotification("UNN LiveScore", msg);
         }
+
+        // Refresh match list or table based on visibility
+        if (document.getElementById('app-container').style.display !== 'none') render();
+        if (document.getElementById('main-table-section').style.display !== 'none') showMainTable(document.querySelector('.pill.active'));
+
+        if (document.getElementById('sheet')?.style.bottom === '0px') updateModal();
     }, 5000);
 
     // --- 4. MODAL LOGIC ---
     let currentMatchId = null;
-
     function openModal(id) {
         currentMatchId = id;
         updateModal();
-        document.getElementById('overlay').style.display = 'block';
+        const overlay = document.getElementById('overlay');
+        const sheet = document.getElementById('sheet');
+        overlay.style.display = 'block';
         setTimeout(() => {
-            document.getElementById('overlay').style.opacity = '1';
-            document.getElementById('sheet').style.bottom = '0';
+            overlay.style.opacity = '1';
+            sheet.style.bottom = '0';
         }, 10);
     }
 
     function updateModal() {
-        if(!currentMatchId) return;
+        if (!currentMatchId) return;
         const m = matches.find(x => x.id === currentMatchId);
+        if(!m) return;
 
         document.getElementById('md-league').innerText = m.league;
         document.getElementById('md-h').innerText = m.home;
         document.getElementById('md-a').innerText = m.away;
         document.getElementById('md-score').innerText = m.status === 'UPCOMING' ? 'VS' : `${m.hScore} - ${m.aScore}`;
         document.getElementById('md-time').innerText = m.status === 'LIVE' ? m.time + "'" : m.status;
-
-        document.getElementById('md-l1').innerText = m.home[0]; document.getElementById('md-l1').style.background = m.c1;
-        document.getElementById('md-l2').innerText = m.away[0]; document.getElementById('md-l2').style.background = m.c2;
+        document.getElementById('md-l1').innerText = m.home[0]; 
+        document.getElementById('md-l1').style.background = m.c1;
+        document.getElementById('md-l2').innerText = m.away[0]; 
+        document.getElementById('md-l2').style.background = m.c2;
 
         const hPoss = m.status === 'UPCOMING' ? 50 : Math.floor(Math.random() * 30) + 35;
         document.getElementById('stats-box').innerHTML = `
@@ -424,45 +434,99 @@
 
     function generateTable(leagueName) {
         const leagueMatches = matches.filter(m => m.league === leagueName);
-        const teams = [...new Set([...leagueMatches.map(m=>m.home), ...leagueMatches.map(m=>m.away)])];
+        const teams = [...new Set([...leagueMatches.map(m => m.home), ...leagueMatches.map(m => m.away)])];
 
-        let standings = teams.map(t => {
-            return { name: t, pts: Math.floor(Math.random()*10), p: 5, gd: Math.floor(Math.random()*5) };
-        }).sort((a,b) => b.pts - a.pts);
+        const standings = teams.map(team => ({
+            name: team,
+            p: 5,
+            gd: Math.floor(Math.random() * 5),
+            pts: Math.floor(Math.random() * 10)
+        })).sort((a,b) => b.pts - a.pts);
 
-        let html = '';
-        standings.forEach((t, i) => {
-            html += `<div class="tbl-row"><div>${i+1}</div> <div>${t.name}</div> <div>${t.p}</div> <div>${t.gd}</div> <div style="font-weight:bold; color:white;">${t.pts}</div></div>`;
+        const tableBox = document.getElementById('table-box');
+        if(!tableBox) return;
+
+        tableBox.innerHTML = `<div class="tbl-header">
+                                <div>Rank</div> <div>Team</div> <div>P</div> <div>GD</div> <div>Pts</div>
+                              </div>`;
+        standings.forEach((t,i) => {
+            const row = document.createElement('div');
+            row.className = 'tbl-row';
+            row.innerHTML = `<div>${i+1}</div> <div>${t.name}</div> <div>${t.p}</div> <div>${t.gd}</div> <div style="font-weight:bold; color:white;">${t.pts}</div>`;
+            tableBox.appendChild(row);
         });
-        document.getElementById('table-box').innerHTML = html;
     }
 
-    // --- 5. INTERACTIONS ---
-    function filterSport(el, s) { document.querySelectorAll('.nav-scroller .pill').forEach(p => p.classList.remove('active')); el.classList.add('active'); state.sport = s; state.favOnly = false; render(); }
-    function filterFavorite(el) { document.querySelectorAll('.nav-scroller .pill').forEach(p => p.classList.remove('active')); el.classList.add('active'); state.favOnly = true; render(); }
+    // --- 5. INTERACTIONS (updated for table view) ---
+    function filterSport(el, s) {
+        document.querySelectorAll('.nav-scroller .pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        state.sport = s;
+        state.favOnly = false;
+
+        // Show matches, hide table
+        document.getElementById('app-container').style.display = 'block';
+        document.getElementById('main-table-section').style.display = 'none';
+
+        render();
+    }
+
+    function filterFavorite(el) {
+        document.querySelectorAll('.nav-scroller .pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        state.favOnly = true;
+
+        // Show matches, hide table
+        document.getElementById('app-container').style.display = 'block';
+        document.getElementById('main-table-section').style.display = 'none';
+
+        render();
+    }
+
+    function showMainTable(el){
+        document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active')); 
+        el.classList.add('active');
+
+        // Show table and hide matches
+        document.getElementById('main-table-section').style.display = 'block';
+        document.getElementById('app-container').style.display = 'none';
+
+        const leagueMatches = matches.filter(m=>m.sport===state.sport);
+        const leagues = [...new Set(leagueMatches.map(m=>m.league))];
+        let html='';
+        leagues.forEach(leagueName=>{
+            const leagueData=leagueMatches.filter(m=>m.league===leagueName);
+            const teams=[...new Set([...leagueData.map(m=>m.home), ...leagueData.map(m=>m.away)])];
+            const standings = teams.map(team=>({ name:team, p:5, gd:Math.floor(Math.random()*5), pts:Math.floor(Math.random()*10) })).sort((a,b)=>b.pts-a.pts);
+            html+=`<div class="league-table"><div class="lt-header">${leagueName}</div>
+                   <div class="tbl-row header"><div>#</div> <div>Team</div> <div>P</div> <div>GD</div> <div>Pts</div></div>`;
+            standings.forEach((t,i)=>html+=`<div class="tbl-row"><div>${i+1}</div><div>${t.name}</div><div>${t.p}</div><div>${t.gd}</div><div style="font-weight:bold;color:white;">${t.pts}</div></div>`);
+            html+='</div>';
+        });
+        document.getElementById('main-table-box').innerHTML=html;
+    }
+
     function toggleLive(el) { state.liveOnly = !state.liveOnly; el.classList.toggle('active'); render(); }
     function toggleFav(e, id) { e.stopPropagation(); state.favorites.includes(id) ? state.favorites = state.favorites.filter(x=>x!==id) : state.favorites.push(id); localStorage.setItem('unn_favs', JSON.stringify(state.favorites)); render(); }
-    function tab(name, el) { document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active')); document.getElementById('t-'+name).classList.add('active'); document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
-    function closeModal() { document.getElementById('sheet').style.bottom = '-100%'; document.getElementById('overlay').style.opacity = '0'; setTimeout(() => document.getElementById('overlay').style.display = 'none', 300); currentMatchId = null; }
-    function toggleSearch() { document.getElementById('searchWrap').classList.toggle('open'); if(document.getElementById('searchWrap').classList.contains('open')) document.querySelector('.search-input').focus(); }
+    function tab(name, el) { document.querySelectorAll('.tab-view').forEach(t=>t.classList.remove('active')); document.getElementById('t-'+name).classList.add('active'); document.querySelectorAll('.m-tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); }
+    function closeModal() { const overlay=document.getElementById('overlay'); const sheet=document.getElementById('sheet'); sheet.style.bottom='-100%'; overlay.style.opacity='0'; setTimeout(()=>overlay.style.display='none',300); currentMatchId=null; }
+    function toggleSearch() { const wrap=document.getElementById('searchWrap'); wrap.classList.toggle('open'); if(wrap.classList.contains('open')) document.querySelector('.search-input').focus(); }
 
     let debounceTimer;
-    function debounceSearch(val) { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { state.search = val.toLowerCase(); render(); }, 300); }
+    function debounceSearch(val){ clearTimeout(debounceTimer); debounceTimer=setTimeout(()=>{ state.search=val.toLowerCase(); render(); },300); }
 
-    function showToast(msg) { const t = document.getElementById('toast'); document.getElementById('toast-msg').innerText = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
-
-    function createStatBar(label, hVal, aVal) { const total = hVal + aVal; const hPct = (hVal/total)*100; return `<div class="stat-row"><div class="stat-label"><span>${hVal}</span> <span>${label}</span> <span>${aVal}</span></div><div class="stat-bar-bg"><div style="width:${hPct}%; background:var(--gold);"></div><div style="width:${100-hPct}%; background:var(--primary);"></div></div></div>`; }
-    function isLight(color) { const hex = color.replace('#',''); const r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16); return ((r*299)+(g*587)+(b*114))/1000 > 155; }
-    function formatTime(m) { return '20:00'; }
+    function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toast-msg').innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
+    function createStatBar(label,hVal,aVal){ const total=hVal+aVal; const hPct=(hVal/total)*100; return `<div class="stat-row"><div class="stat-label"><span>${hVal}</span> <span>${label}</span> <span>${aVal}</span></div><div class="stat-bar-bg"><div style="width:${hPct}%; background:var(--gold);"></div><div style="width:${100-hPct}%; background:var(--primary);"></div></div></div>`; }
+    function isLight(color){ const hex=color.replace('#',''); const r=parseInt(hex.substr(0,2),16), g=parseInt(hex.substr(2,2),16), b=parseInt(hex.substr(4,2),16); return ((r*299)+(g*587)+(b*114))/1000>155; }
+    function formatTime(m){ return '20:00'; }
 
     // --- 6. NOTIFICATIONS ---
-    if ("Notification" in window) Notification.requestPermission().then(p => console.log("Notification permission:", p));
-    function sendWebNotification(title, body) { if(Notification.permission==="granted") new Notification(title,{body}); }
+    if("Notification" in window) Notification.requestPermission().then(p=>console.log("Notification permission:",p));
+    function sendWebNotification(title,body){ if(Notification.permission==="granted") new Notification(title,{body}); }
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').then(reg=>console.log("Service Worker Registered",reg));
 
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').then(reg => console.log("Service Worker Registered", reg));
-
+    // --- INIT ---
     render();
-                                                       </script>
+</script>
 </body>
 </html>
-
